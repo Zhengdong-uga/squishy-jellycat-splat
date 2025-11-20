@@ -178,9 +178,9 @@ const assetTransforms = {
   "peridot.spz": {
     // Make peridot larger so it matches other jellycats better
     scale: new THREE.Vector3(10, 10, 10),
-    // Rotate so peridot faces the camera instead of showing the bottom/back
-    // (X: tilt up, Y: turn around)
-    rotation: { x: -Math.PI / 2, y: Math.PI, z: 0 },
+    // Keep peridot upright and facing camera: no upside-down
+    // Start from no tilt on X, then rotate 180° on Y to face camera
+    rotation: { x: 0, y: Math.PI, z: 0 },
   },
 };
 

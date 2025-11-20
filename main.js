@@ -8,7 +8,7 @@ const camera = new THREE.PerspectiveCamera(
   60,
   window.innerWidth / window.innerHeight,
   0.1,
-  1000,
+  1000
 );
 const renderer = new THREE.WebGLRenderer({ antialias: false });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -166,7 +166,7 @@ function createDragBounceDynoshader() {
           bounceSpeed: bounceSpeed,
         }).gsplat,
       };
-    },
+    }
   );
 }
 
@@ -180,7 +180,7 @@ const assetTransforms = {
     scale: new THREE.Vector3(10, 10, 10),
     // Keep peridot upright and facing camera: no upside-down
     // Start from no tilt on X, then rotate 180° on Y to face camera
-    rotation: { x: 0, y: Math.PI, z: 0 },
+    rotation: { x: 0, y: 0, z: 0 },
   },
 };
 
@@ -216,7 +216,7 @@ async function loadSplat(assetKey) {
       splatMesh.rotation.set(
         transform.rotation.x,
         transform.rotation.y,
-        transform.rotation.z,
+        transform.rotation.z
       );
     }
   }
@@ -238,7 +238,7 @@ function getMouseNDC(event) {
   const rect = renderer.domElement.getBoundingClientRect();
   return new THREE.Vector2(
     ((event.clientX - rect.left) / rect.width) * 2 - 1,
-    -((event.clientY - rect.top) / rect.height) * 2 + 1,
+    -((event.clientY - rect.top) / rect.height) * 2 + 1
   );
 }
 
@@ -293,7 +293,7 @@ renderer.domElement.addEventListener("pointermove", (event) => {
   // Convert screen space movement to world space
   const mouseDelta = new THREE.Vector2(
     (ndc.x - dragStartNDC.x) * dragScale,
-    (ndc.y - dragStartNDC.y) * dragScale,
+    (ndc.y - dragStartNDC.y) * dragScale
   );
 
   const cameraRight = new THREE.Vector3();

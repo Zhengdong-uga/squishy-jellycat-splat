@@ -300,12 +300,45 @@ renderer.domElement.addEventListener("pointerup", () => {
 
 const jellycatSelector = document.getElementById("jellycat-select");
 if (jellycatSelector) {
-  jellycatSelector.value = currentAssetKey;
-  jellycatSelector.addEventListener("change", (event) => {
-    const nextKey = event.target.value;
-    loadSplat(nextKey).catch((error) => {
-      console.error("Error loading splat:", error);
-    });
+  async function setupJellycatSelector() {
+    try {
+      const response = await fetch("./assets.json");
+      const assetsInfo = await response.json();
+
+      // Populate dropdown with all splat assets from assets.json
+      jellycatSelector.innerHTML = "";
+      const splatKeys = Object.keys(assetsInfo).filter((key) =>
+        key.toLowerCase().endsWith(".spz") || key.toLowerCase().endsWith(".zip"),
+      );
+
+      splatKeys.forEach((key) => {
+        const option = document.createElement("option");
+        option.value = key;
+        option.textContent = key;
+        jellycatSelector.appendChild(option);
+      });
+
+      if (splatKeys.length > 0) {
+        if (!splatKeys.includes(currentAssetKey)) {
+          currentAssetKey = splatKeys[0];
+          await loadSplat(currentAssetKey);
+        }
+        jellycatSelector.value = currentAssetKey;
+      }
+
+      jellycatSelector.addEventListener("change", (event) => {
+        const nextKey = event.target.value;
+        loadSplat(nextKey).catch((error) => {
+          console.error("Error loading splat:", error);
+        });
+      });
+    } catch (error) {
+      console.error("Failed to populate asset list:", error);
+    }
+  }
+
+  setupJellycatSelector().catch((error) => {
+    console.error("Error setting up jellycat selector:", error);
   });
 }
 

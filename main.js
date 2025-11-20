@@ -175,11 +175,12 @@ let currentAssetKey = "penguin.spz";
 
 // Optional per-asset transforms (scale/orientation tweaks)
 const assetTransforms = {
-  "jellycat-peridot.spz": {
+  "peridot.spz": {
     // Make peridot larger so it matches other jellycats better
     scale: new THREE.Vector3(10, 10, 10),
-    // Rotate 180° around Y so peridot faces the camera/orbit direction
-    quaternion: new THREE.Quaternion(0, 1, 0, 0),
+    // Rotate so peridot faces the camera instead of showing the bottom/back
+    // (X: tilt up, Y: turn around)
+    rotation: { x: -Math.PI / 2, y: Math.PI, z: 0 },
   },
 };
 
@@ -210,6 +211,13 @@ async function loadSplat(assetKey) {
     }
     if (transform.quaternion) {
       splatMesh.quaternion.copy(transform.quaternion);
+    }
+    if (transform.rotation) {
+      splatMesh.rotation.set(
+        transform.rotation.x,
+        transform.rotation.y,
+        transform.rotation.z,
+      );
     }
   }
 
@@ -330,7 +338,7 @@ if (jellycatSelector) {
       // Populate dropdown with selected animal/toy splat assets from assets.json
       jellycatSelector.innerHTML = "";
 
-      const allowedPrefixes = ["cat", "penguin", "jellycat"];
+      const allowedPrefixes = ["cat", "penguin", "jellycat", "peridot"];
       const splatKeys = Object.keys(assetsInfo).filter((key) => {
         const lower = key.toLowerCase();
         const hasSplatExt = lower.endsWith(".spz") || lower.endsWith(".zip");

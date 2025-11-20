@@ -37,5 +37,5 @@
   "jellycat-bunny.spz": {"url": "https://sparkjs.dev/assets/splats/penguin.spz", "directory": "splats"},
   "jellycat-fox.spz": {"url": "https://sparkjs.dev/assets/splats/penguin.spz", "directory": "splats"},
   "jellycat-dino.spz": {"url": "https://sparkjs.dev/assets/splats/penguin.spz", "directory": "splats"},
-  "jellycat-peridot.spz": {"url": "./splats/peridot.ply", "directory": "splats"}
+  "peridot.spz": {"url": "./splats/peridot.ply", "directory": "splats"}
 }

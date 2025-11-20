@@ -173,6 +173,16 @@ function createDragBounceDynoshader() {
 let splatMesh = null;
 let currentAssetKey = "penguin.spz";
 
+// Optional per-asset transforms (scale/orientation tweaks)
+const assetTransforms = {
+  "jellycat-peridot.spz": {
+    // Make peridot larger so it matches other jellycats better
+    scale: new THREE.Vector3(10, 10, 10),
+    // Use identity rotation so it behaves consistently with camera orbit
+    quaternion: new THREE.Quaternion(0, 0, 0, 1),
+  },
+};
+
 async function loadSplat(assetKey) {
   currentAssetKey = assetKey;
 
@@ -191,6 +201,18 @@ async function loadSplat(assetKey) {
   splatMesh = new SplatMesh({ url: splatURL });
   splatMesh.quaternion.set(1, 0, 0, 0);
   splatMesh.position.set(0, 0, 0);
+
+  // Apply any per-asset transform overrides (e.g., peridot size/orientation)
+  const transform = assetTransforms[assetKey];
+  if (transform) {
+    if (transform.scale) {
+      splatMesh.scale.copy(transform.scale);
+    }
+    if (transform.quaternion) {
+      splatMesh.quaternion.copy(transform.quaternion);
+    }
+  }
+
   scene.add(splatMesh);
 
   await splatMesh.initialized;

@@ -308,7 +308,7 @@ if (jellycatSelector) {
       // Populate dropdown with selected animal/toy splat assets from assets.json
       jellycatSelector.innerHTML = "";
 
-      const allowedPrefixes = ["woobles", "butterfly", "cat", "penguin"];
+      const allowedPrefixes = ["cat", "penguin"];
       const splatKeys = Object.keys(assetsInfo).filter((key) => {
         const lower = key.toLowerCase();
         const hasSplatExt = lower.endsWith(".spz") || lower.endsWith(".zip");

@@ -1,278 +1,322 @@
-// main.js — squishy jellycat splat
-import * as THREE from 'https://unpkg.com/three@0.161.0/build/three.module.js';
-
-const canvas = document.getElementById('scene');
-
-// --- renderer / scene / camera ---
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-renderer.setPixelRatio(window.devicePixelRatio);
-renderer.setClearColor(0x050509, 1);
+import { SparkRenderer, SplatMesh, dyno } from "@sparkjsdev/spark";
+import { GUI } from "lil-gui";
+import * as THREE from "three";
+import { getAssetFileURL } from "./get-asset-url.js";
 
 const scene = new THREE.Scene();
-scene.fog = new THREE.Fog(0x050509, 10, 50);
-
-const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
-camera.position.set(0, 0, 18);
-
-// --- resize handling ---
-function onResize() {
-  const w = window.innerWidth;
-  const h = window.innerHeight;
-  renderer.setSize(w, h, false);
-  camera.aspect = w / h;
-  camera.updateProjectionMatrix();
-}
-window.addEventListener('resize', onResize);
-onResize();
-
-// --- interaction state ---
-const mouse = new THREE.Vector2();
-const raycaster = new THREE.Raycaster();
-let isDragging = false;
-let currentHitPoint = null;
-
-window.addEventListener('pointerdown', (e) => {
-  isDragging = true;
-  updateMouseFromEvent(e);
-});
-
-window.addEventListener('pointerup', () => {
-  isDragging = false;
-  currentHitPoint = null;
-});
-
-window.addEventListener('pointermove', (e) => {
-  updateMouseFromEvent(e);
-});
-
-function updateMouseFromEvent(e) {
-  const rect = canvas.getBoundingClientRect();
-  mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-  mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-}
-
-// keyboard: A/D rotate, W/S zoom
-const keyState = new Set();
-window.addEventListener('keydown', (e) => keyState.add(e.key.toLowerCase()));
-window.addEventListener('keyup', (e) => keyState.delete(e.key.toLowerCase()));
-
-// --- jellycat point cloud ---
-let points;
-let originalPositions; // Float32Array
-let velocities;        // Float32Array
-
-// invisible plane used to compute drag position
-const deformPlane = new THREE.Mesh(
-  new THREE.PlaneGeometry(20, 20),
-  new THREE.MeshBasicMaterial({ visible: false })
+const camera = new THREE.PerspectiveCamera(
+  60,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  1000,
 );
-scene.add(deformPlane);
+const renderer = new THREE.WebGLRenderer({ antialias: false });
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
 
-// deformation physics parameters
-const DEFORM_RADIUS = 2.0;
-const SPRING_STIFFNESS = 45.0;
-const DAMPING = 9.0;
-const MASS = 1.0;
-const PUSH_STRENGTH = 130.0;
+const spark = new SparkRenderer({ renderer });
+scene.add(spark);
 
-loadJellycat().then((cloud) => {
-  points = cloud.points;
-  originalPositions = cloud.originalPositions;
-  velocities = new Float32Array(originalPositions.length);
-  scene.add(points);
-  animate();
-}).catch((err) => {
-  console.error('Failed to load jellycat:', err);
+window.addEventListener("resize", onWindowResize, false);
+function onWindowResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+let rotationAngle = 0;
+let zoomDistance = 5.5;
+const minZoom = 1;
+const maxZoom = 20;
+const rotationSpeed = 0.02;
+const zoomSpeed = 0.1;
+
+camera.position.set(0, 3, zoomDistance);
+camera.lookAt(0, 1, 0);
+
+const keys = {};
+window.addEventListener("keydown", (event) => {
+  keys[event.key.toLowerCase()] = true;
+});
+window.addEventListener("keyup", (event) => {
+  keys[event.key.toLowerCase()] = false;
 });
 
-// build point cloud from jellycat.png
-async function loadJellycat() {
-  const loader = new THREE.TextureLoader();
-  const texture = await loader.loadAsync('./jellycat.png');
-  const image = texture.image;
+// Dyno uniforms for drag and bounce effects
+const dragPoint = dyno.dynoVec3(new THREE.Vector3(0, 0, 0));
+const dragDisplacement = dyno.dynoVec3(new THREE.Vector3(0, 0, 0));
+const dragRadius = dyno.dynoFloat(0.5);
+const dragActive = dyno.dynoFloat(0.0);
+const bounceTime = dyno.dynoFloat(0.0);
+const bounceBaseDisplacement = dyno.dynoVec3(new THREE.Vector3(0, 0, 0));
+const dragIntensity = dyno.dynoFloat(5.0);
+const bounceAmount = dyno.dynoFloat(0.5);
+const bounceSpeed = dyno.dynoFloat(0.5);
+let isBouncing = false;
 
-  const tmpCanvas = document.createElement('canvas');
-  tmpCanvas.width = image.width;
-  tmpCanvas.height = image.height;
-  const ctx = tmpCanvas.getContext('2d');
-  ctx.drawImage(image, 0, 0);
-  const imgData = ctx.getImageData(0, 0, image.width, image.height);
-  const data = imgData.data;
+const gui = new GUI();
+const guiParams = {
+  intensity: dragIntensity.value,
+  radius: 0.5,
+  bounceAmount: 0.5,
+  bounceSpeed: 0.5,
+};
 
-  const positions = [];
-  const colors = [];
-
-  const step = 3; // sampling step — smaller = more points
-
-  for (let y = 0; y < image.height; y += step) {
-    for (let x = 0; x < image.width; x += step) {
-      const idx = (y * image.width + x) * 4;
-      const r = data[idx];
-      const g = data[idx + 1];
-      const b = data[idx + 2];
-      const a = data[idx + 3];
-
-      if (a < 60) continue; // skip mostly transparent
-
-      // center & scale
-      const nx = (x / image.width) - 0.5;
-      const ny = (y / image.height) - 0.5;
-      const scale = 9.5;
-
-      const px = nx * scale;
-      const py = -ny * scale;
-      const pz = (Math.random() - 0.5) * 0.7; // jelly thickness
-
-      positions.push(px, py, pz);
-
-      // slightly brighten colors
-      const br = Math.pow(r / 255, 0.8);
-      const bg = Math.pow(g / 255, 0.8);
-      const bb = Math.pow(b / 255, 0.8);
-      colors.push(br, bg, bb);
+gui
+  .add(guiParams, "intensity", 0, 10.0, 0.1)
+  .name("Deformation Strength")
+  .onChange((value) => {
+    dragIntensity.value = value;
+    if (splatMesh) {
+      splatMesh.updateVersion();
     }
-  }
-
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute(
-    'position',
-    new THREE.Float32BufferAttribute(new Float32Array(positions), 3)
-  );
-  geometry.setAttribute(
-    'color',
-    new THREE.Float32BufferAttribute(new Float32Array(colors), 3)
-  );
-
-  const material = new THREE.PointsMaterial({
-    size: 0.14,
-    vertexColors: true,
-    depthWrite: false,
-    transparent: true,
-    opacity: 1.0,
-    sizeAttenuation: true,
   });
 
-  const pts = new THREE.Points(geometry, material);
-  const original = new Float32Array(positions);
+gui
+  .add(guiParams, "radius", 0.25, 1.0, 0.1)
+  .name("Drag Radius")
+  .onChange((value) => {
+    dragRadius.value = value;
+    if (splatMesh) {
+      splatMesh.updateVersion();
+    }
+  });
 
-  // slight initial rotation so it’s not perfectly flat
-  pts.rotation.x = -0.14;
+gui
+  .add(guiParams, "bounceAmount", 0, 1.0, 0.1)
+  .name("Bounce Strength")
+  .onChange((value) => {
+    bounceAmount.value = value;
+    if (splatMesh) {
+      splatMesh.updateVersion();
+    }
+  });
 
-  return { points: pts, originalPositions: original };
+gui
+  .add(guiParams, "bounceSpeed", 0, 1.0, 0.01)
+  .name("Bounce Speed")
+  .onChange((value) => {
+    bounceSpeed.value = value;
+    if (splatMesh) {
+      splatMesh.updateVersion();
+    }
+  });
+
+let isDragging = false;
+let dragStartPoint = null;
+let currentDragPoint = null;
+const raycaster = new THREE.Raycaster();
+raycaster.params.Points = { threshold: 0.5 };
+
+function createDragBounceDynoshader() {
+  return dyno.dynoBlock(
+    { gsplat: dyno.Gsplat },
+    { gsplat: dyno.Gsplat },
+    ({ gsplat }) => {
+      const shader = new dyno.Dyno({
+        inTypes: {
+          gsplat: dyno.Gsplat,
+          dragPoint: "vec3",
+          dragDisplacement: "vec3",
+          dragRadius: "float",
+          dragActive: "float",
+          bounceTime: "float",
+          bounceBaseDisplacement: "vec3",
+          dragIntensity: "float",
+          bounceAmount: "float",
+          bounceSpeed: "float",
+        },
+        outTypes: { gsplat: dyno.Gsplat },
+        statements: ({ inputs, outputs }) =>
+          dyno.unindentLines(`
+          ${outputs.gsplat} = ${inputs.gsplat};
+          vec3 originalPos = ${inputs.gsplat}.center;
+          
+          // Calculate influence based on distance from drag point
+          float distToDrag = distance(originalPos, ${inputs.dragPoint});
+          float dragInfluence = 1.0 - smoothstep(0.0, ${inputs.dragRadius}*2., distToDrag);
+          float time = ${inputs.bounceTime};
+
+          // Apply drag deformation
+          if (${inputs.dragActive} > 0.5 && ${inputs.dragRadius} > 0.0) {
+            vec3 dragOffset = ${inputs.dragDisplacement} * dragInfluence * ${inputs.dragIntensity} * 50.0;
+            originalPos += dragOffset;
+          }
+          
+          // Apply elastic bounce effect
+          float bounceFrequency = 1.0 + ${inputs.bounceSpeed} * 8.0;
+          vec3 bounceOffset = ${inputs.bounceBaseDisplacement} * dragInfluence * ${inputs.dragIntensity} * 50.0;
+          originalPos += bounceOffset * cos(time*bounceFrequency) * exp(-time*2.0*(1.0-${inputs.bounceAmount}*.9));
+
+          ${outputs.gsplat}.center = originalPos;
+        `),
+      });
+
+      return {
+        gsplat: shader.apply({
+          gsplat,
+          dragPoint: dragPoint,
+          dragDisplacement: dragDisplacement,
+          dragRadius: dragRadius,
+          dragActive: dragActive,
+          bounceTime: bounceTime,
+          bounceBaseDisplacement: bounceBaseDisplacement,
+          dragIntensity: dragIntensity,
+          bounceAmount: bounceAmount,
+          bounceSpeed: bounceSpeed,
+        }).gsplat,
+      };
+    },
+  );
 }
 
-// --- animation loop ---
-let lastTime = performance.now();
+let splatMesh = null;
 
-function animate(now) {
-  requestAnimationFrame(animate);
+async function loadSplat() {
+  const splatURL = await getAssetFileURL("penguin.spz");
+  splatMesh = new SplatMesh({ url: splatURL });
+  splatMesh.quaternion.set(1, 0, 0, 0);
+  splatMesh.position.set(0, 0, 0);
+  scene.add(splatMesh);
 
-  const dt = Math.min((now - lastTime) / 1000, 1 / 30);
-  lastTime = now;
+  await splatMesh.initialized;
 
-  handleCamera(dt);
-  handleInteraction(dt);
+  splatMesh.worldModifier = createDragBounceDynoshader();
+  splatMesh.updateGenerator();
+}
+
+loadSplat().catch((error) => {
+  console.error("Error loading splat:", error);
+});
+
+// Convert mouse coordinates to normalized device coordinates
+function getMouseNDC(event) {
+  const rect = renderer.domElement.getBoundingClientRect();
+  return new THREE.Vector2(
+    ((event.clientX - rect.left) / rect.width) * 2 - 1,
+    -((event.clientY - rect.top) / rect.height) * 2 + 1,
+  );
+}
+
+// Raycast to find intersection point on splat
+function getHitPoint(ndc) {
+  if (!splatMesh) return null;
+  raycaster.setFromCamera(ndc, camera);
+  const hits = raycaster.intersectObject(splatMesh, false);
+  if (hits && hits.length > 0) {
+    return hits[0].point.clone();
+  }
+  return null;
+}
+
+let dragStartNDC = null;
+let dragScale = 1.0;
+
+renderer.domElement.addEventListener("pointerdown", (event) => {
+  if (!splatMesh) return;
+
+  const ndc = getMouseNDC(event);
+  const hitPoint = getHitPoint(ndc);
+
+  if (hitPoint) {
+    isDragging = true;
+    dragStartNDC = ndc.clone();
+    dragStartPoint = hitPoint.clone();
+    currentDragPoint = hitPoint.clone();
+
+    // Calculate scale factor for screen-to-world conversion
+    const distanceToCamera = camera.position.distanceTo(hitPoint);
+    const fov = camera.fov * (Math.PI / 180);
+    const screenHeight = 2.0 * Math.tan(fov / 2.0) * distanceToCamera;
+    dragScale = screenHeight / window.innerHeight;
+
+    dragPoint.value.copy(hitPoint);
+    dragActive.value = 1.0;
+    dragRadius.value = guiParams.radius;
+    dragDisplacement.value.set(0, 0, 0);
+
+    bounceTime.value = -1.0;
+    bounceBaseDisplacement.value.set(0, 0, 0);
+    isBouncing = false;
+  }
+});
+
+renderer.domElement.addEventListener("pointermove", (event) => {
+  if (!isDragging || !splatMesh || !dragStartPoint || !dragStartNDC) return;
+
+  const ndc = getMouseNDC(event);
+
+  // Convert screen space movement to world space
+  const mouseDelta = new THREE.Vector2(
+    (ndc.x - dragStartNDC.x) * dragScale,
+    (ndc.y - dragStartNDC.y) * dragScale,
+  );
+
+  const cameraRight = new THREE.Vector3();
+  const cameraUp = new THREE.Vector3();
+  camera.getWorldDirection(new THREE.Vector3());
+  cameraRight.setFromMatrixColumn(camera.matrixWorld, 0).normalize();
+  cameraUp.setFromMatrixColumn(camera.matrixWorld, 1).normalize();
+
+  const worldDisplacement = new THREE.Vector3()
+    .addScaledVector(cameraRight, mouseDelta.x)
+    .addScaledVector(cameraUp, mouseDelta.y);
+
+  currentDragPoint = dragStartPoint.clone().add(worldDisplacement);
+  dragDisplacement.value.copy(worldDisplacement);
+});
+
+renderer.domElement.addEventListener("pointerup", () => {
+  if (!isDragging) return;
+
+  isDragging = false;
+
+  // Start bounce animation with final displacement
+  if (currentDragPoint && dragStartPoint) {
+    const finalDisplacement = currentDragPoint.clone().sub(dragStartPoint);
+    bounceBaseDisplacement.value.copy(dragDisplacement.value);
+    bounceTime.value = 0.0;
+    isBouncing = true;
+  }
+
+  dragActive.value = 0.0;
+  dragDisplacement.value.set(0, 0, 0);
+  dragStartNDC = null;
+});
+
+renderer.setAnimationLoop(() => {
+  // Update bounce animation
+  if (isBouncing) {
+    bounceTime.value += 0.1;
+    if (splatMesh) {
+      splatMesh.updateVersion();
+    }
+  }
+
+  // Keyboard controls
+  if (keys.a) {
+    rotationAngle -= rotationSpeed;
+  }
+  if (keys.d) {
+    rotationAngle += rotationSpeed;
+  }
+
+  if (keys.w) {
+    zoomDistance = Math.max(minZoom, zoomDistance - zoomSpeed);
+  }
+  if (keys.s) {
+    zoomDistance = Math.min(maxZoom, zoomDistance + zoomSpeed);
+  }
+
+  // Update camera orbit
+  camera.position.x = Math.sin(rotationAngle) * zoomDistance;
+  camera.position.z = Math.cos(rotationAngle) * zoomDistance;
+  camera.position.y = 3;
+  camera.lookAt(0, 1.5, 0);
+
+  if (splatMesh) {
+    splatMesh.updateVersion();
+  }
+
   renderer.render(scene, camera);
-}
-
-// --- camera movement ---
-function handleCamera(dt) {
-  const rotSpeed = 1.3;
-  const zoomSpeed = 13.0;
-
-  if (keyState.has('a')) scene.rotation.y += rotSpeed * dt;
-  if (keyState.has('d')) scene.rotation.y -= rotSpeed * dt;
-
-  if (keyState.has('w')) camera.position.z -= zoomSpeed * dt;
-  if (keyState.has('s')) camera.position.z += zoomSpeed * dt;
-
-  camera.position.z = THREE.MathUtils.clamp(camera.position.z, 8, 35);
-}
-
-// --- deformation & spring physics ---
-function handleInteraction(dt) {
-  if (!points || !originalPositions || !velocities) return;
-
-  const geom = points.geometry;
-  const posAttr = geom.getAttribute('position');
-  const pos = posAttr.array;
-
-  // update current hit point if dragging
-  if (isDragging) {
-    raycaster.setFromCamera(mouse, camera);
-    const hits = raycaster.intersectObject(deformPlane);
-    if (hits.length > 0) {
-      if (!currentHitPoint) currentHitPoint = new THREE.Vector3();
-      currentHitPoint.copy(hits[0].point);
-    }
-  }
-
-  const radiusSq = DEFORM_RADIUS * DEFORM_RADIUS;
-
-  for (let i = 0; i < pos.length; i += 3) {
-    const ox = originalPositions[i];
-    const oy = originalPositions[i + 1];
-    const oz = originalPositions[i + 2];
-
-    let x = pos[i];
-    let y = pos[i + 1];
-    let z = pos[i + 2];
-
-    let vx = velocities[i];
-    let vy = velocities[i + 1];
-    let vz = velocities[i + 2];
-
-    // spring force pulling to original
-    const dx = ox - x;
-    const dy = oy - y;
-    const dz = oz - z;
-
-    let fx = SPRING_STIFFNESS * dx - DAMPING * vx;
-    let fy = SPRING_STIFFNESS * dy - DAMPING * vy;
-    let fz = SPRING_STIFFNESS * dz - DAMPING * vz;
-
-    // squish outward from cursor
-    if (isDragging && currentHitPoint) {
-      const pdx = x - currentHitPoint.x;
-      const pdy = y - currentHitPoint.y;
-      const pdz = z - currentHitPoint.z;
-      const distSq = pdx * pdx + pdy * pdy + pdz * pdz;
-
-      if (distSq < radiusSq) {
-        const dist = Math.sqrt(distSq) + 1e-6;
-        const influence = 1.0 - dist / DEFORM_RADIUS;
-
-        const normX = pdx / dist;
-        const normY = pdy / dist;
-        const normZ = pdz / dist;
-
-        fx += PUSH_STRENGTH * influence * normX;
-        fy += PUSH_STRENGTH * influence * normY;
-        fz += PUSH_STRENGTH * influence * normZ;
-      }
-    }
-
-    // integrate
-    const ax = fx / MASS;
-    const ay = fy / MASS;
-    const az = fz / MASS;
-
-    vx += ax * dt;
-    vy += ay * dt;
-    vz += az * dt;
-
-    x += vx * dt;
-    y += vy * dt;
-    z += vz * dt;
-
-    velocities[i] = vx;
-    velocities[i + 1] = vy;
-    velocities[i + 2] = vz;
-
-    pos[i] = x;
-    pos[i + 1] = y;
-    pos[i + 2] = z;
-  }
-
-  posAttr.needsUpdate = true;
-}
+});

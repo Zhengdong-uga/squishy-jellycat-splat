@@ -5,59 +5,115 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Squishy Jellycat Splat • Spark Splat Experiment</title>
     <style>
+      @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap');
+
       body {
         margin: 0;
         overflow: hidden;
-        font-family: Arial, sans-serif;
-        background: #000;
+        font-family: 'Nunito', "Segoe UI", sans-serif;
+        background: #f4f9fc; /* Soft cloud white/blue */
       }
 
       header {
         position: absolute;
-        color: silver;
-        font-family: sans-serif;
-        padding: 12px 16px;
-        text-align: left;
-        width: 100vw;
+        color: #555;
+        font-family: 'Nunito', sans-serif;
+        padding: 24px;
+        text-align: center;
+        width: 100%;
+        box-sizing: border-box;
         pointer-events: none;
-        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8),
-          -1px -1px 2px rgba(0, 0, 0, 0.6), 1px -1px 2px rgba(0, 0, 0, 0.6),
-          -1px 1px 2px rgba(0, 0, 0, 0.6);
-        -webkit-text-stroke: 0.5px rgba(0, 0, 0, 0.7);
+        font-size: 1.4rem;
+        font-weight: 700;
+        z-index: 10;
+        text-transform: uppercase;
+        letter-spacing: 2px;
       }
+      
+      /* Simulating the Jellycat logo feel */
+      header span.jelly { color: #000; }
+      header span.cat { color: #000; }
 
       #control-bar {
         position: absolute;
-        top: 56px;
-        left: 16px;
-        padding: 8px 12px;
-        background: rgba(0, 0, 0, 0.6);
-        color: silver;
-        border-radius: 8px;
-        font-size: 14px;
+        top: 90px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 10px 24px;
+        background: #fff;
+        color: #333;
+        border-radius: 50px; /* Pill shape */
+        font-size: 15px;
         pointer-events: auto;
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 16px;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+        border: 1px solid #eef2f5;
       }
 
       #jellycat-select {
-        background: #111;
-        color: silver;
-        border: 1px solid #555;
-        border-radius: 4px;
-        padding: 4px 8px;
+        background: #f8f9fa;
+        color: #333;
+        border: 1px solid #e0e0e0;
+        border-radius: 20px;
+        padding: 6px 16px;
+        font-family: inherit;
+        font-weight: 700;
+        outline: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      #jellycat-select:hover {
+        border-color: #6dcff6; /* Jellycat blueish */
+        background: #fff;
+      }
+
+      label {
+        color: #777;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.85rem;
+        letter-spacing: 1px;
+      }
+
+      /* Lil-GUI overrides for Jellycat style */
+      .lil-gui { 
+        --background-color: #fff;
+        --text-color: #333;
+        --title-background-color: #6dcff6; /* Jellycat Blue */
+        --title-text-color: #fff;
+        --widget-color: #f0f0f0;
+        --hover-color: #e6f7ff;
+        --focus-color: #6dcff6;
+        --number-color: #6dcff6;
+        --string-color: #6dcff6;
+        font-family: 'Nunito', sans-serif !important;
+        border-radius: 12px !important;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.1) !important;
+        border: none !important;
+      }
+      
+      .lil-gui .title {
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        text-align: center;
+        text-shadow: none;
       }
     </style>
   </head>
 
   <body>
     <header>
-      Click and drag on the penguin to deform it. Release to see elastic bounce.
-      A/D to rotate. W/S to zoom
+      <span class="jelly">Jellycat</span> <span style="color:#6dcff6">Splat</span>
+      <div style="font-size: 0.7em; color: #999; text-transform: none; letter-spacing: 0; margin-top: 8px; font-weight: 400;">
+        Squish & Bounce • A/D Rotate • W/S Zoom
+      </div>
     </header>
     <div id="control-bar">
-      <label for="jellycat-select">Choose your Jellycat:</label>
+      <label for="jellycat-select">Collection</label>
       <select id="jellycat-select">
         <option value="penguin.spz">Penguin</option>
       </select>

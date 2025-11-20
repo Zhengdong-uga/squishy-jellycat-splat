@@ -1,81 +1,80 @@
 <!DOCTYPE html>
 <html>
-
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Squishy Jellycat Splat • Spark Splat Experiment</title>
-  <style>
-    body {
-      margin: 0;
-      overflow: hidden;
-      font-family: Arial, sans-serif;
-      background: #000;
-    }
-
-    header {
-      position: absolute;
-      color: silver;
-      font-family: sans-serif;
-      padding: 12px 16px;
-      text-align: left;
-      width: 100vw;
-      pointer-events: none;
-      text-shadow:
-        2px 2px 4px rgba(0, 0, 0, 0.8),
-        -1px -1px 2px rgba(0, 0, 0, 0.6),
-        1px -1px 2px rgba(0, 0, 0, 0.6),
-        -1px 1px 2px rgba(0, 0, 0, 0.6);
-      -webkit-text-stroke: 0.5px rgba(0, 0, 0, 0.7);
-    }
-
-    #control-bar {
-      position: absolute;
-      top: 56px;
-      left: 16px;
-      padding: 8px 12px;
-      background: rgba(0, 0, 0, 0.6);
-      color: silver;
-      border-radius: 8px;
-      font-size: 14px;
-      pointer-events: auto;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    #jellycat-select {
-      background: #111;
-      color: silver;
-      border: 1px solid #555;
-      border-radius: 4px;
-      padding: 4px 8px;
-    }
-  </style>
-</head>
-
-<body>
-  <header>Click and drag on the penguin to deform it \u0000b7 Release to see elastic bounce \u0000b7 A/D to rotate \u0000b7 W/S to zoom</header>
-  <div id="control-bar">
-    <label for="jellycat-select">Choose your Jellycat:</label>
-    <select id="jellycat-select">
-      <option value="penguin.spz">Penguin</option>
-      <option value="jellycat-bunny.spz">Bunny (Jellycat)</option>
-      <option value="jellycat-fox.spz">Fox (Jellycat)</option>
-      <option value="jellycat-dino.spz">Dino (Jellycat)</option>
-    </select>
-  </div>
-  <script type="importmap">
-    {
-      "imports": {
-        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
-        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
-        "@sparkjsdev/spark": "https://unpkg.com/@sparkjsdev/spark@0.1.6/dist/spark.module.js",
-        "lil-gui": "https://cdn.jsdelivr.net/npm/lil-gui@0.19.2/dist/lil-gui.esm.js"
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Squishy Jellycat Splat • Spark Splat Experiment</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+        font-family: Arial, sans-serif;
+        background: #000;
       }
-    }
-  </script>
-  <script type="module" src="main.js"></script>
-</body>
 
+      header {
+        position: absolute;
+        color: silver;
+        font-family: sans-serif;
+        padding: 12px 16px;
+        text-align: left;
+        width: 100vw;
+        pointer-events: none;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8),
+          -1px -1px 2px rgba(0, 0, 0, 0.6), 1px -1px 2px rgba(0, 0, 0, 0.6),
+          -1px 1px 2px rgba(0, 0, 0, 0.6);
+        -webkit-text-stroke: 0.5px rgba(0, 0, 0, 0.7);
+      }
+
+      #control-bar {
+        position: absolute;
+        top: 56px;
+        left: 16px;
+        padding: 8px 12px;
+        background: rgba(0, 0, 0, 0.6);
+        color: silver;
+        border-radius: 8px;
+        font-size: 14px;
+        pointer-events: auto;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      #jellycat-select {
+        background: #111;
+        color: silver;
+        border: 1px solid #555;
+        border-radius: 4px;
+        padding: 4px 8px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <header>
+      Click and drag on the penguin to deform it. Release to see elastic bounce.
+      A/D to rotate. W/S to zoom
+    </header>
+    <div id="control-bar">
+      <label for="jellycat-select">Choose your Jellycat:</label>
+      <select id="jellycat-select">
+        <option value="penguin.spz">Penguin</option>
+        <option value="jellycat-bunny.spz">Bunny (Jellycat)</option>
+        <option value="jellycat-fox.spz">Fox (Jellycat)</option>
+        <option value="jellycat-dino.spz">Dino (Jellycat)</option>
+      </select>
+    </div>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
+          "@sparkjsdev/spark": "https://unpkg.com/@sparkjsdev/spark@0.1.6/dist/spark.module.js",
+          "lil-gui": "https://cdn.jsdelivr.net/npm/lil-gui@0.19.2/dist/lil-gui.esm.js"
+        }
+      }
+    </script>
+    <script type="module" src="main.js"></script>
+  </body>
 </html>

@@ -36,5 +36,6 @@
   "woobles.spz": {"url": "https://sparkjs.dev/assets/splats/woobles.spz", "directory": "splats"},
   "jellycat-bunny.spz": {"url": "https://sparkjs.dev/assets/splats/penguin.spz", "directory": "splats"},
   "jellycat-fox.spz": {"url": "https://sparkjs.dev/assets/splats/penguin.spz", "directory": "splats"},
-  "jellycat-dino.spz": {"url": "https://sparkjs.dev/assets/splats/penguin.spz", "directory": "splats"}
+  "jellycat-dino.spz": {"url": "https://sparkjs.dev/assets/splats/penguin.spz", "directory": "splats"},
+  "jellycat-peridot.spz": {"url": "./splats/peridot.ply", "directory": "splats"}
 }

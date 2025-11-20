@@ -180,7 +180,7 @@ const assetTransforms = {
     scale: new THREE.Vector3(10, 10, 10),
     // Keep peridot upright and facing camera: no upside-down
     // Start from no tilt on X, then rotate 180° on Y to face camera
-    rotation: { x: 0, y: 0, z: 0 },
+    rotation: { x: Math.PI / 2, y: Math.PI, z: Math.PI },
   },
 };
 

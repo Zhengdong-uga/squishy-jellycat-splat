@@ -305,11 +305,16 @@ if (jellycatSelector) {
       const response = await fetch("./assets.json");
       const assetsInfo = await response.json();
 
-      // Populate dropdown with all splat assets from assets.json
+      // Populate dropdown with selected animal/toy splat assets from assets.json
       jellycatSelector.innerHTML = "";
-      const splatKeys = Object.keys(assetsInfo).filter((key) =>
-        key.toLowerCase().endsWith(".spz") || key.toLowerCase().endsWith(".zip"),
-      );
+
+      const allowedPrefixes = ["woobles", "butterfly", "cat", "penguin"];
+      const splatKeys = Object.keys(assetsInfo).filter((key) => {
+        const lower = key.toLowerCase();
+        const hasSplatExt = lower.endsWith(".spz") || lower.endsWith(".zip");
+        if (!hasSplatExt) return false;
+        return allowedPrefixes.some((prefix) => lower.startsWith(prefix));
+      });
 
       splatKeys.forEach((key) => {
         const option = document.createElement("option");

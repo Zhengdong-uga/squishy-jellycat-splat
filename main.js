@@ -178,8 +178,8 @@ const assetTransforms = {
   "jellycat-peridot.spz": {
     // Make peridot larger so it matches other jellycats better
     scale: new THREE.Vector3(10, 10, 10),
-    // Use identity rotation so it behaves consistently with camera orbit
-    quaternion: new THREE.Quaternion(0, 0, 0, 1),
+    // Rotate 180° around Y so peridot faces the camera/orbit direction
+    quaternion: new THREE.Quaternion(0, 1, 0, 0),
   },
 };
 

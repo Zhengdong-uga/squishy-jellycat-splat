@@ -171,9 +171,23 @@ function createDragBounceDynoshader() {
 }
 
 let splatMesh = null;
+let currentAssetKey = "penguin.spz";
 
-async function loadSplat() {
-  const splatURL = await getAssetFileURL("penguin.spz");
+async function loadSplat(assetKey) {
+  currentAssetKey = assetKey;
+
+  if (splatMesh) {
+    scene.remove(splatMesh);
+    splatMesh.dispose?.();
+    splatMesh = null;
+  }
+
+  const splatURL = await getAssetFileURL(assetKey);
+  if (!splatURL) {
+    console.error(`Error resolving URL for asset: ${assetKey}`);
+    return;
+  }
+
   splatMesh = new SplatMesh({ url: splatURL });
   splatMesh.quaternion.set(1, 0, 0, 0);
   splatMesh.position.set(0, 0, 0);
@@ -185,7 +199,7 @@ async function loadSplat() {
   splatMesh.updateGenerator();
 }
 
-loadSplat().catch((error) => {
+loadSplat(currentAssetKey).catch((error) => {
   console.error("Error loading splat:", error);
 });
 
@@ -283,6 +297,17 @@ renderer.domElement.addEventListener("pointerup", () => {
   dragDisplacement.value.set(0, 0, 0);
   dragStartNDC = null;
 });
+
+const jellycatSelector = document.getElementById("jellycat-select");
+if (jellycatSelector) {
+  jellycatSelector.value = currentAssetKey;
+  jellycatSelector.addEventListener("change", (event) => {
+    const nextKey = event.target.value;
+    loadSplat(nextKey).catch((error) => {
+      console.error("Error loading splat:", error);
+    });
+  });
+}
 
 renderer.setAnimationLoop(() => {
   // Update bounce animation
